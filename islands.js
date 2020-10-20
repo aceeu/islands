@@ -130,13 +130,13 @@ function distance(fromNode, id) {
     let bridgesCount = 0;
     for(; i < count; ++i) {
         const ds = distance(findNode(treeRoot, i), i + 1);
-        console.log(ds);
+        // console.log(ds);
         bridgesCount += ds.length; 
     }
     const ds = distance(findNode(treeRoot, i), 1);
-    console.log(ds);
+    // console.log(ds);
     bridgesCount += ds.length;
-    console.log(`количество переходов равно: ${bridgesCount}`);
+    console.log(bridgesCount);
 
 
     
