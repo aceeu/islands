@@ -1,3 +1,5 @@
+const readline = require('readline');
+
 class Node {
     constructor(value, parent) {
         this.value = value;
@@ -60,13 +62,11 @@ function appendToTreeI(node, bridge) {
 // returs [[1,5], [2,6], ....]
 function parseInput(str) {
     const rows = str.split('\n');
-    const [count, ...bridges] = rows;
-    return [bridges.map(v => {
+    return rows.map(v => {
         const [l, r] = v.split(' ');
         const [ln, rn] = [+l, +r];
         return ln < rn ? [ln, rn] : [rn, ln];
-    }), count]
-
+    });
 }
 
 // упорядочивает
@@ -112,32 +112,51 @@ function distance(fromNode, id) {
     return counter;
 }
 
+const rl = readline.createInterface({
+  input: process.stdin,
+  terminal: false
+});
+
  
 (function start() {
-    const input =
-    '8\n\
-5 8\n\
-1 3\n\
-8 6\n\
-7 5\n\
-2 8\n\
-1 5\n\
-4 5';
-    const [data, count] = parseInput(input);
-    const sortedPairs = reorder(data);
-    const treeRoot = buildTree(sortedPairs);
-    let i = 1;
-    let bridgesCount = 0;
-    for(; i < count; ++i) {
-        const ds = distance(findNode(treeRoot, i), i + 1);
-        // console.log(ds);
-        bridgesCount += ds.length; 
-    }
-    const ds = distance(findNode(treeRoot, i), 1);
-    // console.log(ds);
-    bridgesCount += ds.length;
-    console.log(bridgesCount);
+//     const input =
+//     '8\n\
+// 5 8\n\
+// 1 3\n\
+// 8 6\n\
+// 7 5\n\
+// 2 8\n\
+// 1 5\n\
+// 4 5';
 
+    input = '';
+    bridgesNumber = -1;
+    rl.on('line', function(line) {
+        if (bridgesNumber == -1) {
+            bridgesNumber = Number.parseInt(line) - 1;
+            return;
+        }
+        --bridgesNumber;
+        input = input.concat(line);
+        if (bridgesNumber == 0) {
+            rl.close();
+        }
+        input = input.concat('\n');            
 
-    
+    });
+    rl.on('close', () => {
+        const data = parseInput(input);
+        const count = data.length + 1;
+        const sortedPairs = reorder(data);
+        const treeRoot = buildTree(sortedPairs);
+        let i = 1;
+        let bridgesCount = 0;
+        for(; i < count; ++i) {
+            const ds = distance(findNode(treeRoot, i), i + 1);
+            bridgesCount += ds.length; 
+        }
+        const ds = distance(findNode(treeRoot, i), 1);
+        bridgesCount += ds.length;
+        console.log(bridgesCount); 
+    });
 })();
