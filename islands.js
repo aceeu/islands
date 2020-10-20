@@ -9,33 +9,41 @@ class Node {
     }
 }
 
-root = undefined;
-
-
-function buildTree(arrPairs) {
-
-    const [first, ...others] = arrPairs;
-    root = new Node(first[0], undefined);
-    root.childs.push(new Node(first[1], root))
-    
-    const rest = []
-    others.forEach(element => {
+function fill(bridges, root) {
+    const rest = [];
+    bridges.forEach(element => {
         const res = appendToTree(root, element);
         if (res == false)
             rest.push(element);
     });
-    console.log(rest);
+    if (rest.length)
+        return fill(rest, root);
+    return rest;    
+}
+
+function buildTree(arrPairs) {
+    const [first, ...others] = arrPairs;
+    const root = new Node(first[0], undefined);
+    root.childs.push(new Node(first[1], root));
+    fill(others, root);
+    return root;
 }
 
 function appendToTree(node, bridge) {
-    node.print();
-    console.log(`bridge: ${bridge}`);
+    const res = appendToTreeI(node, bridge);
+    // console.log(`append: ${res ? 'ok' : 'fail'}`);
+    return res;
+}
+
+function appendToTreeI(node, bridge) {
+    // node.print();
+    // console.log(`bridge: ${bridge}`);
     const [l, r] = bridge;
     if (node.value == l) {
         node.childs.push(new Node(r, node));
         return true;
     }
-    else if (root.value == r) {
+    else if (node.value == r) {
         node.childs.push(new Node(l, node))
         return true;
     }
@@ -52,13 +60,12 @@ function appendToTree(node, bridge) {
 // returs [[1,5], [2,6], ....]
 function parseInput(str) {
     const rows = str.split('\n');
-    const iNumber = rows[0];
     const [count, ...bridges] = rows;
-    return bridges.map(v => {
+    return [bridges.map(v => {
         const [l, r] = v.split(' ');
         const [ln, rn] = [+l, +r];
         return ln < rn ? [ln, rn] : [rn, ln];
-    })
+    }), count]
 
 }
 
@@ -72,6 +79,40 @@ function reorder(arrPairs) {
     });
 }
 
+function findNode(root, id) {
+    return findDown(root, id);
+}
+
+function findDown(node, id, counter = []) {
+    if (node.value == id) {
+        return node;
+    }
+    for (let i = 0; i < node.childs.length; ++i) {
+        const n = node.childs[i];
+        counter.push(n.value);
+        const fn = findDown(n, id, counter)
+        if (fn)
+            return fn;
+        counter.pop();
+    }
+
+    return undefined;
+}
+
+function distance(fromNode, id) {
+    const counter = [];
+    for(;;) {
+        const resFindDown = findDown(fromNode, id, counter);
+        if (resFindDown)
+            break;
+        // go up
+        fromNode = fromNode.parent;
+        counter.push(fromNode.value);
+    }
+    return counter;
+}
+
+ 
 (function start() {
     const input =
     '8\n\
@@ -82,6 +123,21 @@ function reorder(arrPairs) {
 2 8\n\
 1 5\n\
 4 5';
-    const sortedPairs = reorder(parseInput(input));
-    buildTree(sortedPairs);
+    const [data, count] = parseInput(input);
+    const sortedPairs = reorder(data);
+    const treeRoot = buildTree(sortedPairs);
+    let i = 1;
+    let bridgesCount = 0;
+    for(; i < count; ++i) {
+        const ds = distance(findNode(treeRoot, i), i + 1);
+        console.log(ds);
+        bridgesCount += ds.length; 
+    }
+    const ds = distance(findNode(treeRoot, i), 1);
+    console.log(ds);
+    bridgesCount += ds.length;
+    console.log(`количество переходов равно: ${bridgesCount}`);
+
+
+    
 })();
