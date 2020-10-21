@@ -6,57 +6,44 @@ class Node {
         this.parent = parent;
         this.childs = [];
     }
+    addChild(value) {
+        this.childs.push(new Node(value, this));
+    }
     print() {
         console.log(`>> value:${this.value}, childs: ${this.childs.map(c => c.value || '-')}`);
     }
 }
 
-function fill(bridges, root) {
-    const rest = [];
-    bridges.forEach(element => {
-        const res = appendToTree(root, element);
-        if (res == false)
-            rest.push(element);
-    });
-    if (rest.length)
-        return fill(rest, root);
-    return rest;    
+function makeRoot([l, r]) {
+    const root = new Node(1, undefined);
+    root.childs.push(new Node(l != 1 ? l : r, root));
+    return root;
+}
+
+function splitArray(arrPairs, value) {
+    const has = []; // только значения [1, 2,...]
+    const hasnt = []; // пары
+    for (let i = 0; i < arrPairs.length; ++i) {
+        const p = arrPairs[i];
+        if (p[0] === value || p[1] === value)
+            has.push(p[0] === value ? p[1] : p[0]);
+        else
+            hasnt.push(p)
+    }
+    return [has, hasnt];
 }
 
 function buildTree(arrPairs) {
     const [first, ...others] = arrPairs;
-    const root = new Node(first[0], undefined);
-    root.childs.push(new Node(first[1], root));
-    fill(others, root);
+    const root = makeRoot(first);
+    makeChilds(others, root);
     return root;
 }
 
-function appendToTree(node, bridge) {
-    const res = appendToTreeI(node, bridge);
-    // console.log(`append: ${res ? 'ok' : 'fail'}`);
-    return res;
-}
-
-function appendToTreeI(node, bridge) {
-    // node.print();
-    // console.log(`bridge: ${bridge}`);
-    const [l, r] = bridge;
-    if (node.value == l) {
-        node.childs.push(new Node(r, node));
-        return true;
-    }
-    else if (node.value == r) {
-        node.childs.push(new Node(l, node))
-        return true;
-    }
-    if (node.childs.length == 0)
-        return false;
-    for (let i = 0; i < node.childs.length; ++i) {
-        if (appendToTree(node.childs[i], bridge))
-            return true;
-    }
-    return false;
-
+function makeChilds(arrPairs, node) {
+    const [has, hasnt] = splitArray(arrPairs, node.value);
+    has.forEach(v => node.addChild(v));
+    node.childs.forEach(c => makeChilds(hasnt, c));
 }
 
 // returs [[1,5], [2,6], ....]
@@ -71,65 +58,99 @@ function parseInput(str) {
 
 // упорядочивает
 function reorder(arrPairs) {
-    return arrPairs.sort((a, b) => {
-        const v  = a[0] - b[0];
-        if (v != 0)
-            return v;
-        return a[1] - b[1];
-    });
+    const index = arrPairs.findIndex(v => v[0] == 1 || v[1] == 1);
+    if (index == -1)
+        throw new Error('invalid bridges');
+    const one = arrPairs.splice(index, 1);
+    arrPairs.unshift(one[0]);
+    return arrPairs;
 }
 
-function findNode(root, id) {
-    return findDown(root, id);
-}
-
-function findDown(node, id, counter = []) {
+function findDown(node, id, counter = {steps: 0, fn: undefined}, excludedChild = -1) {
     if (node.value == id) {
+        counter.fn = node;
         return node;
     }
     for (let i = 0; i < node.childs.length; ++i) {
         const n = node.childs[i];
-        counter.push(n.value);
+        if (n.value == excludedChild)
+            continue;
+        ++counter.steps;
         const fn = findDown(n, id, counter)
-        if (fn)
+        if (fn) {
+            counter.fn = fn;
             return fn;
-        counter.pop();
+        }
+        --counter.steps;
     }
 
     return undefined;
 }
 
 function distance(fromNode, id) {
-    const counter = [];
+    const counter = {steps: 0, fn: undefined};
+    let upFrom = -1;
     for(;;) {
-        const resFindDown = findDown(fromNode, id, counter);
+        const resFindDown = findDown(fromNode, id, counter, upFrom);
         if (resFindDown)
             break;
         // go up
+        upFrom = fromNode.value;
         fromNode = fromNode.parent;
-        counter.push(fromNode.value);
+        ++counter.steps;
     }
     return counter;
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  terminal: false
-});
 
- 
-(function start() {
-//     const input =
-//     '8\n\
-// 5 8\n\
-// 1 3\n\
-// 8 6\n\
-// 7 5\n\
-// 2 8\n\
-// 1 5\n\
-// 4 5';
 
-    input = '';
+function go(input) {
+    const data = parseInput(input);
+    const count = data.length + 1;
+    const sortedPairs = reorder(data);
+    const treeRoot = buildTree(sortedPairs);
+    let i = 1;
+    let bridgesCount = 0;
+    let currNode = treeRoot;
+    let counter;
+    for(; i < count; ++i) {
+        counter = distance(currNode, i + 1);
+        bridgesCount += counter.steps;
+        currNode = counter.fn;
+    }
+    counter = distance(currNode, 1);
+    bridgesCount += counter.steps;
+    console.log(bridgesCount); 
+}
+
+function tests() {
+    const input =
+//'8\n\
+'5 8\n\
+1 3\n\
+8 6\n\
+7 5\n\
+2 8\n\
+1 5\n\
+4 5';
+
+    const data = parseInput(input);
+    const sortedPairs = reorder(data);
+    // console.log(sortedPairs);
+    const [h, hn] = splitArray(sortedPairs, 1);
+    // console.log(h);
+    // console.log(hn);
+    const root = buildTree(sortedPairs);
+    console.log(root.childs[1].childs[0]);
+    go(input);
+}
+
+function doFromStdIn() {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        terminal: false
+    });
+    let input = '';
     bridgesNumber = -1;
     rl.on('line', function(line) {
         if (bridgesNumber == -1) {
@@ -145,18 +166,12 @@ const rl = readline.createInterface({
 
     });
     rl.on('close', () => {
-        const data = parseInput(input);
-        const count = data.length + 1;
-        const sortedPairs = reorder(data);
-        const treeRoot = buildTree(sortedPairs);
-        let i = 1;
-        let bridgesCount = 0;
-        for(; i < count; ++i) {
-            const ds = distance(findNode(treeRoot, i), i + 1);
-            bridgesCount += ds.length; 
-        }
-        const ds = distance(findNode(treeRoot, i), 1);
-        bridgesCount += ds.length;
-        console.log(bridgesCount); 
+        go(input);
     });
+}
+
+ 
+(function start() {
+//   tests();
+  doFromStdIn();
 })();
