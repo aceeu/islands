@@ -14,36 +14,39 @@ class Node {
     }
 }
 
-function makeRoot([l, r]) {
+function makeRoot(connectedWith1) {
     const root = new Node(1, undefined);
-    root.childs.push(new Node(l != 1 ? l : r, root));
+    root.childs = connectedWith1.map(v => new Node(v, root));
     return root;
 }
 
 function splitArray(arrPairs, value) {
     const has = []; // только значения [1, 2,...]
-    const hasnt = []; // пары
     for (let i = 0; i < arrPairs.length; ++i) {
         const p = arrPairs[i];
-        if (p[0] === value || p[1] === value)
+        if (p[0] === value || p[1] === value) {
             has.push(p[0] === value ? p[1] : p[0]);
-        else
-            hasnt.push(p)
+            delete arrPairs[i]
+        }
     }
+    const hasnt = arrPairs.filter(v => !!v);
     return [has, hasnt];
 }
 
-function buildTree(arrPairs) {
-    const [first, ...others] = arrPairs;
-    const root = makeRoot(first);
-    makeChilds(others, root);
+function buildTree(connectedWith1, arrPairs) {
+    const root = makeRoot(connectedWith1);
+    makeChilds(arrPairs, root);
     return root;
 }
 
 function makeChilds(arrPairs, node) {
     const [has, hasnt] = splitArray(arrPairs, node.value);
     has.forEach(v => node.addChild(v));
-    node.childs.forEach(c => makeChilds(hasnt, c));
+    let currarrPairs = hasnt;
+    for (let i = 0; i < node.childs.length; ++i) {
+        currarrPairs = makeChilds(currarrPairs, node.childs[i]);
+    }
+    return currarrPairs;
 }
 
 // returs [[1,5], [2,6], ....]
@@ -107,8 +110,7 @@ function distance(fromNode, id) {
 function go(input) {
     const data = parseInput(input);
     const count = data.length + 1;
-    const sortedPairs = reorder(data);
-    const treeRoot = buildTree(sortedPairs);
+    const treeRoot = buildTree(...splitArray(data, 1));
     let i = 1;
     let bridgesCount = 0;
     let currNode = treeRoot;
@@ -135,13 +137,13 @@ function tests() {
 4 5';
 
     const data = parseInput(input);
-    const sortedPairs = reorder(data);
+    // const sortedPairs = reorder(data);
     // console.log(sortedPairs);
-    const [h, hn] = splitArray(sortedPairs, 1);
+    // const [h, hn] = ;
     // console.log(h);
     // console.log(hn);
-    const root = buildTree(sortedPairs);
-    console.log(root.childs[1].childs[0]);
+    // const root = buildTree(...splitArray(data, 1));
+    // console.log(root.childs[1].childs[0]);
     go(input);
 }
 
